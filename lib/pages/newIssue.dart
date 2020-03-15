@@ -69,7 +69,7 @@ class _NewIssueState extends State<NewIssue> with SingleTickerProviderStateMixin
   }
 
   handleCreateIssue() async {
-    FocusScope.of(context).detach();
+    FocusScope.of(context).unfocus();
     if ((_issueFormKey.currentState as FormState).validate()) {
       setState(() {
         this._fetching = true;

@@ -32,7 +32,7 @@ class _LoginState extends State<Login> {
 
   handleLogin() async {
     setState(() {
-      FocusScope.of(context).detach();
+      FocusScope.of(context).unfocus();
       this._fetching = true;
     });
     final errorMessage = await login(
