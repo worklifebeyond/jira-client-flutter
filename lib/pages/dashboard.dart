@@ -29,7 +29,7 @@ class Dashboard extends StatefulWidget {
 }
 
 class _DashboardState extends State<Dashboard> with TickerProviderStateMixin {
-  TabController _tabController = TabController(vsync: null, length: 0);
+  TabController _tabController;
   String _appBarTitle;
 
   List _customFilter = [];
@@ -43,6 +43,7 @@ class _DashboardState extends State<Dashboard> with TickerProviderStateMixin {
   @override
   void initState() {
     super.initState();
+    _tabController = TabController(vsync: this, length: 0);
     displayStatusBar();
     initData(context);
   }
