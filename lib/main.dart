@@ -49,6 +49,7 @@ class Main extends StatelessWidget {
 }
 
 void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
   // 创建一个持久化器
   var persistor = Persistor<AppState>(
     storage: FlutterStorage(),
