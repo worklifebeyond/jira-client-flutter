@@ -18,11 +18,11 @@ class Storage {
   }
 
   LogTime getCurrentLog(){
-    return storage.getItem("log");
+    return LogTime.fromMap(storage.getItem("log"));
   }
 
   Future<void> setLogTime(LogTime logTime) async {
-    await storage.setItem("log", logTime);
+    await storage.setItem("log", logTime.toMap());
   }
 
 }

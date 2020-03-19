@@ -5,7 +5,9 @@ import 'package:flutter/services.dart';
 import 'package:fluttertoast/fluttertoast.dart';
 import 'package:jira_time/actions/api.dart';
 import 'package:jira_time/generated/i18n.dart';
+import 'package:jira_time/models/logtime.dart';
 import 'package:jira_time/util/customDialog.dart';
+import 'package:jira_time/util/storage.dart';
 import 'package:jira_time/widgets/customSvg.dart';
 import 'package:jira_time/widgets/customCard.dart';
 import 'package:jira_time/util/dateTimePicker.dart';
@@ -16,6 +18,8 @@ import 'package:jira_time/util/lodash.dart';
 import 'package:jira_time/widgets/networkImageWithCookie.dart';
 import 'package:jira_time/widgets/placeholderText.dart';
 import 'package:jira_time/widgets/userDisplay.dart';
+
+import 'log_timer.dart';
 
 class Issue extends StatefulWidget {
   final String issueKey;
@@ -31,6 +35,7 @@ class _IssueState extends State<Issue> with SingleTickerProviderStateMixin {
   Map<String, dynamic> _issueData;
   List _issueComments;
   List _issueWorkLogs;
+  Storage storage;
 
   _IssueState(this.issueKey);
 
@@ -38,6 +43,7 @@ class _IssueState extends State<Issue> with SingleTickerProviderStateMixin {
   void initState() {
     super.initState();
     // init issue data
+    storage = Storage();
     fetchIssue(this.issueKey).then((issueData) {
       setState(() {
         this._issueData = issueData;
@@ -105,7 +111,29 @@ class _IssueState extends State<Issue> with SingleTickerProviderStateMixin {
     }
   }
 
-  handleSubmitWorkLog(String workLogComment, DateTime started, int timeSpentSeconds) async {
+  handleOnLogTime(BuildContext context) async {
+    final payload = this._issueData['fields'];
+    LogTime logTime = LogTime(
+        DateTime.now().millisecondsSinceEpoch,
+        payload['description'] ?? this.issueKey,
+        this.issueKey
+    );
+    if (storage.isCounting()) {
+      logTime = storage.getCurrentLog();
+    }else{
+      await storage.setCounting(true);
+      await storage.setLogTime(logTime);
+    }
+
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (context) => LogTimer(logTime, (logTime.issueKey == this.issueKey)),
+      ),
+    );
+  }
+
+  handleSubmitWorkLog(
+      String workLogComment, DateTime started, int timeSpentSeconds) async {
     // post to server
     try {
       showDialog(
@@ -154,7 +182,8 @@ class _IssueState extends State<Issue> with SingleTickerProviderStateMixin {
             Container(
               margin: EdgeInsets.only(right: 2),
               height: textHeight,
-              child: Image(image: NetworkImageWithCookie(payload['status']['iconUrl'])),
+              child: Image(
+                  image: NetworkImageWithCookie(payload['status']['iconUrl'])),
             ),
             Text(
               $_get(
@@ -279,14 +308,8 @@ class _IssueState extends State<Issue> with SingleTickerProviderStateMixin {
     listItems.add(LargeItem(
       S.of(context).work_logs,
       createIcon: Icons.add,
-      onTapCreateIcon: () async {
-        showCustomDialog(
-          context: context,
-          child: WorkLogInput(
-            onSubmit: this.handleSubmitWorkLog,
-          ),
-          barrierDismissible: false,
-        );
+      onTapCreateIcon: () {
+        this.handleOnLogTime(context);
       },
       child: this._issueWorkLogs != null
           ? this._issueWorkLogs.length > 0
@@ -297,7 +320,8 @@ class _IssueState extends State<Issue> with SingleTickerProviderStateMixin {
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: <Widget>[
                           UserDisplay(workLogData['updateAuthor']),
-                          Text(workLogData['timeSpent'], style: Theme.of(context).textTheme.title),
+                          Text(workLogData['timeSpent'],
+                              style: Theme.of(context).textTheme.title),
                         ],
                       ),
                       body: Text(workLogData['comment'] ?? ''),
@@ -339,7 +363,8 @@ class LargeItem extends StatelessWidget {
 
   final Widget child;
 
-  const LargeItem(this.title, {Key key, this.child, this.createIcon, this.onTapCreateIcon})
+  const LargeItem(this.title,
+      {Key key, this.child, this.createIcon, this.onTapCreateIcon})
       : super(key: key);
 
   Widget buildTitle(BuildContext context) {
@@ -364,8 +389,9 @@ class LargeItem extends StatelessWidget {
     return Container(
       margin: EdgeInsets.only(top: 10, bottom: 20),
       child: Row(
-        mainAxisAlignment:
-            this.createIcon == null ? MainAxisAlignment.start : MainAxisAlignment.spaceBetween,
+        mainAxisAlignment: this.createIcon == null
+            ? MainAxisAlignment.start
+            : MainAxisAlignment.spaceBetween,
         children: titleItems,
       ),
     );
@@ -419,8 +445,9 @@ class CommentInput extends StatelessWidget {
                 autofocus: true,
                 autovalidate: true,
                 maxLines: 10,
-                validator: (value) =>
-                    value.length > 0 ? null : S.of(context).validator_comment_required,
+                validator: (value) => value.length > 0
+                    ? null
+                    : S.of(context).validator_comment_required,
               ),
               Container(
                 width: double.infinity,
@@ -440,8 +467,11 @@ class CommentInput extends StatelessWidget {
 
 class WorkLogInput extends StatefulWidget {
   final Function onSubmit;
+  final DateTime workTime;
+  final Duration spent;
 
-  WorkLogInput({Key key, this.onSubmit}) : super(key: key);
+
+  WorkLogInput({Key key, this.onSubmit, this.workTime, this.spent}) : super(key: key);
 
   @override
   _WorkLogInputState createState() => _WorkLogInputState();
@@ -456,8 +486,8 @@ class _WorkLogInputState extends State<WorkLogInput> {
   handleSubmit() {
     final formState = _formKey.currentState as FormState;
     if (formState.validate()) {
-      this.widget.onSubmit(
-          _workLogCommentController.text, _workTime, parseWorkLogStr(_workLogTimeController.text));
+      this.widget.onSubmit(_workLogCommentController.text, widget.workTime,
+          widget.spent.inSeconds);
     }
   }
 
@@ -479,17 +509,6 @@ class _WorkLogInputState extends State<WorkLogInput> {
               Container(
                 margin: EdgeInsets.symmetric(vertical: 5, horizontal: 10),
                 width: double.infinity,
-                child: RaisedButton(
-                  color: Theme.of(context).backgroundColor,
-                  onPressed: () async {
-                    final newWorkTime = await showDateTimePicker(
-                      context: context,
-                      initialDate: _workTime,
-                    );
-                    setState(() {
-                      this._workTime = newWorkTime;
-                    });
-                  },
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: <Widget>[
@@ -499,26 +518,27 @@ class _WorkLogInputState extends State<WorkLogInput> {
                         margin: EdgeInsets.only(left: 10),
                         child: Text(formatDateTimeString(
                           context: context,
-                          date: _workTime,
+                          date: widget.workTime,
                           HHmm: true,
                         )),
                       ),
                     ],
                   ),
-                ),
+
               ),
               // work time
               TextFormField(
-                controller: _workLogTimeController,
+                controller: _workLogTimeController..text = '${widget.spent.inHours.remainder(60).toString()}:${widget.spent.inMinutes.remainder(60).toString()}:${widget.spent.inSeconds.remainder(60).toString().padLeft(2, '0')}',
                 autovalidate: true,
+                enabled: false,
                 decoration: InputDecoration(
-                  labelText: S.of(context).work_time,
+                  labelText: "Time Spent",
                   hintText: S.of(context).work_time_hint,
                 ),
                 inputFormatters: [
                   BlacklistingTextInputFormatter(RegExp('[^0-9wdhm.]')),
                 ],
-                validator: (String content) {
+                /*validator: (String content) {
                   if (content.length == 0) {
                     return S.of(context).validator_work_time_required;
                   }
@@ -526,7 +546,7 @@ class _WorkLogInputState extends State<WorkLogInput> {
                     return S.of(context).validator_work_time_illegal;
                   }
                   return null;
-                },
+                },*/
               ),
               Divider(),
               TextFormField(
