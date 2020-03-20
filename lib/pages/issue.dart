@@ -30,7 +30,7 @@ class Issue extends StatefulWidget {
   _IssueState createState() => _IssueState(this.issueKey);
 }
 
-class _IssueState extends State<Issue> with SingleTickerProviderStateMixin {
+class _IssueState extends State<Issue> with SingleTickerProviderStateMixin, WidgetsBindingObserver  {
   final String issueKey;
   Map<String, dynamic> _issueData;
   List _issueComments;
@@ -43,6 +43,7 @@ class _IssueState extends State<Issue> with SingleTickerProviderStateMixin {
   void initState() {
     super.initState();
     // init issue data
+    WidgetsBinding.instance.addObserver(this);
     storage = Storage();
     fetchIssue(this.issueKey).then((issueData) {
       setState(() {
@@ -51,6 +52,25 @@ class _IssueState extends State<Issue> with SingleTickerProviderStateMixin {
     });
     fetchComments();
     fetchWorkLogs();
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if(state == AppLifecycleState.resumed){
+      fetchIssue(this.issueKey).then((issueData) {
+        setState(() {
+          this._issueData = issueData;
+        });
+      });
+      fetchComments();
+      fetchWorkLogs();
+    }
   }
 
   fetchComments({clear: false}) {
