@@ -44,7 +44,8 @@ class _LogTimerState extends State<LogTimer> with TickerProviderStateMixin {
       );
       Navigator.of(context).pop(); // exit input dialog
       await localStorage.setCounting(false);
-      Fluttertoast.showToast(msg: S.of(context).submitted_successful);
+      Fluttertoast.showToast(msg: S.of(context).submitted_successful+"\n Please pull to refresh issue");
+      Navigator.of(context).pop();
     } catch (e) {
       print((e as DioError).request.data);
       print((e as DioError).response.data);

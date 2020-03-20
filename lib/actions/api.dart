@@ -108,7 +108,7 @@ Future<List> addIssueWorkLogs(
 }) async {
   final response = await request.post('$API_ISSUE/$key/worklog', data: {
     'comment': workLogComment,
-    'started': started.toIso8601String().substring(0, 22) + '+0800',
+    'started': started.toIso8601String().substring(0, 22) + '+0700',
     'timeSpentSeconds': timeSpentSeconds,
   });
   return response.data['worklogs'];

@@ -30,12 +30,15 @@ class Issue extends StatefulWidget {
   _IssueState createState() => _IssueState(this.issueKey);
 }
 
-class _IssueState extends State<Issue> with SingleTickerProviderStateMixin, WidgetsBindingObserver  {
+class _IssueState extends State<Issue> with SingleTickerProviderStateMixin  {
   final String issueKey;
   Map<String, dynamic> _issueData;
   List _issueComments;
   List _issueWorkLogs;
   Storage storage;
+
+  final GlobalKey<RefreshIndicatorState> _refreshIndicatorKey =
+  GlobalKey<RefreshIndicatorState>();
 
   _IssueState(this.issueKey);
 
@@ -43,7 +46,6 @@ class _IssueState extends State<Issue> with SingleTickerProviderStateMixin, Widg
   void initState() {
     super.initState();
     // init issue data
-    WidgetsBinding.instance.addObserver(this);
     storage = Storage();
     fetchIssue(this.issueKey).then((issueData) {
       setState(() {
@@ -56,22 +58,9 @@ class _IssueState extends State<Issue> with SingleTickerProviderStateMixin, Widg
 
   @override
   void dispose() {
-    WidgetsBinding.instance.removeObserver(this);
     super.dispose();
   }
 
-  @override
-  void didChangeAppLifecycleState(AppLifecycleState state) {
-    if(state == AppLifecycleState.resumed){
-      fetchIssue(this.issueKey).then((issueData) {
-        setState(() {
-          this._issueData = issueData;
-        });
-      });
-      fetchComments();
-      fetchWorkLogs();
-    }
-  }
 
   fetchComments({clear: false}) {
     if (clear) {
@@ -92,7 +81,7 @@ class _IssueState extends State<Issue> with SingleTickerProviderStateMixin, Widg
     });
   }
 
-  fetchWorkLogs({clear: false}) {
+  Future<void> fetchWorkLogs({clear: false}) async{
     if (clear) {
       setState(() {
         this._issueWorkLogs = null;
@@ -108,7 +97,11 @@ class _IssueState extends State<Issue> with SingleTickerProviderStateMixin, Widg
             return bTime.compareTo(aTime);
           });
       });
+      return;
+    }).catchError((onError){
+      return;
     });
+    //return;
   }
 
   handleSubmitComments(String commentBody) async {
@@ -371,10 +364,19 @@ class _IssueState extends State<Issue> with SingleTickerProviderStateMixin, Widg
       appBar: AppBar(
         title: Text(this.issueKey),
       ),
-      body: this._issueData != null ? this.buildContent(context) : Loading(),
+      body: RefreshIndicator(
+          key: _refreshIndicatorKey,
+          onRefresh: this.fetchWorkLogs,
+          child: Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: this._issueData != null ? this.buildContent(context) : Loading(),
+          ))
+      //body: this._issueData != null ? this.buildContent(context) : Loading(),
     );
   }
 }
+
+//body: this._issueData != null ? this.buildContent(context) : Loading(),
 
 class LargeItem extends StatelessWidget {
   final String title;
