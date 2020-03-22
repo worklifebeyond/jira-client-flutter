@@ -368,7 +368,7 @@ class _IssueState extends State<Issue> with SingleTickerProviderStateMixin  {
           key: _refreshIndicatorKey,
           onRefresh: this.fetchWorkLogs,
           child: Padding(
-            padding: const EdgeInsets.all(16.0),
+            padding: const EdgeInsets.all(0.0),
             child: this._issueData != null ? this.buildContent(context) : Loading(),
           ))
       //body: this._issueData != null ? this.buildContent(context) : Loading(),
