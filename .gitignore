@@ -35,6 +35,8 @@ pubspec.lock
 **/android/gradlew
 **/android/gradlew.bat
 **/android/local.properties
+**/android/key.properties
+**/android/app/keystores/certificate.jks
 **/android/**/GeneratedPluginRegistrant.java
 
 # iOS/XCode related

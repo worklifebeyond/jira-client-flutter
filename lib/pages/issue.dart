@@ -30,7 +30,7 @@ class Issue extends StatefulWidget {
   _IssueState createState() => _IssueState(this.issueKey);
 }
 
-class _IssueState extends State<Issue> with SingleTickerProviderStateMixin  {
+class _IssueState extends State<Issue> with SingleTickerProviderStateMixin {
   final String issueKey;
   Map<String, dynamic> _issueData;
   List _issueComments;
@@ -38,7 +38,7 @@ class _IssueState extends State<Issue> with SingleTickerProviderStateMixin  {
   Storage storage;
 
   final GlobalKey<RefreshIndicatorState> _refreshIndicatorKey =
-  GlobalKey<RefreshIndicatorState>();
+      GlobalKey<RefreshIndicatorState>();
 
   _IssueState(this.issueKey);
 
@@ -54,13 +54,54 @@ class _IssueState extends State<Issue> with SingleTickerProviderStateMixin  {
     });
     fetchComments();
     fetchWorkLogs();
+    if (storage.isCounting()) {
+      WidgetsBinding.instance.addPostFrameCallback((_) async {
+        _showDialog();
+      });
+    }
+  }
+
+  void _showDialog() {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title:
+              Text("[${storage.getCurrentLog().issueKey}] WorkLog in progress"),
+          content: Text("${storage.getCurrentLog().taskName}"),
+          actions: <Widget>[
+            FlatButton(
+              child: Text("Close"),
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+            ),
+            FlatButton(
+              child: Text("Go to Work Log"),
+              onPressed: () {
+                Navigator.of(context)
+                    .push(
+                  MaterialPageRoute(
+                    builder: (context) =>
+                        LogTimer(storage.getCurrentLog(), true),
+                  ),
+                )
+                    .then((value) {
+                  Navigator.of(context).pop();
+                });
+                //Navigator.pop(context, true);
+              },
+            ),
+          ],
+        );
+      },
+    );
   }
 
   @override
   void dispose() {
     super.dispose();
   }
-
 
   fetchComments({clear: false}) {
     if (clear) {
@@ -81,7 +122,7 @@ class _IssueState extends State<Issue> with SingleTickerProviderStateMixin  {
     });
   }
 
-  Future<void> fetchWorkLogs({clear: false}) async{
+  Future<void> fetchWorkLogs({clear: false}) async {
     if (clear) {
       setState(() {
         this._issueWorkLogs = null;
@@ -98,7 +139,7 @@ class _IssueState extends State<Issue> with SingleTickerProviderStateMixin  {
           });
       });
       return;
-    }).catchError((onError){
+    }).catchError((onError) {
       return;
     });
     //return;
@@ -126,21 +167,19 @@ class _IssueState extends State<Issue> with SingleTickerProviderStateMixin  {
 
   handleOnLogTime(BuildContext context) async {
     final payload = this._issueData['fields'];
-    LogTime logTime = LogTime(
-        DateTime.now().millisecondsSinceEpoch,
-        payload['description'] ?? this.issueKey,
-        this.issueKey
-    );
+    LogTime logTime = LogTime(DateTime.now().millisecondsSinceEpoch,
+        payload['description'] ?? this.issueKey, this.issueKey);
     if (storage.isCounting()) {
       logTime = storage.getCurrentLog();
-    }else{
+    } else {
       await storage.setCounting(true);
       await storage.setLogTime(logTime);
     }
-
+    await storage.setCounting(true);
     Navigator.of(context).push(
       MaterialPageRoute(
-        builder: (context) => LogTimer(logTime, (logTime.issueKey == this.issueKey)),
+        builder: (context) =>
+            LogTimer(logTime, (logTime.issueKey == this.issueKey)),
       ),
     );
   }
@@ -361,18 +400,20 @@ class _IssueState extends State<Issue> with SingleTickerProviderStateMixin  {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: Text(this.issueKey),
-      ),
-      body: RefreshIndicator(
-          key: _refreshIndicatorKey,
-          onRefresh: this.fetchWorkLogs,
-          child: Padding(
-            padding: const EdgeInsets.all(0.0),
-            child: this._issueData != null ? this.buildContent(context) : Loading(),
-          ))
-      //body: this._issueData != null ? this.buildContent(context) : Loading(),
-    );
+        appBar: AppBar(
+          title: Text(this.issueKey),
+        ),
+        body: RefreshIndicator(
+            key: _refreshIndicatorKey,
+            onRefresh: this.fetchWorkLogs,
+            child: Padding(
+              padding: const EdgeInsets.all(0.0),
+              child: this._issueData != null
+                  ? this.buildContent(context)
+                  : Loading(),
+            ))
+        //body: this._issueData != null ? this.buildContent(context) : Loading(),
+        );
   }
 }
 
@@ -492,8 +533,8 @@ class WorkLogInput extends StatefulWidget {
   final DateTime workTime;
   final Duration spent;
 
-
-  WorkLogInput({Key key, this.onSubmit, this.workTime, this.spent}) : super(key: key);
+  WorkLogInput({Key key, this.onSubmit, this.workTime, this.spent})
+      : super(key: key);
 
   @override
   _WorkLogInputState createState() => _WorkLogInputState();
@@ -531,26 +572,27 @@ class _WorkLogInputState extends State<WorkLogInput> {
               Container(
                 margin: EdgeInsets.symmetric(vertical: 5, horizontal: 10),
                 width: double.infinity,
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: <Widget>[
-                      Icon(Icons.access_time),
-                      Container(
-                        alignment: Alignment.center,
-                        margin: EdgeInsets.only(left: 10),
-                        child: Text(formatDateTimeString(
-                          context: context,
-                          date: widget.workTime,
-                          HHmm: true,
-                        )),
-                      ),
-                    ],
-                  ),
-
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: <Widget>[
+                    Icon(Icons.access_time),
+                    Container(
+                      alignment: Alignment.center,
+                      margin: EdgeInsets.only(left: 10),
+                      child: Text(formatDateTimeString(
+                        context: context,
+                        date: widget.workTime,
+                        HHmm: true,
+                      )),
+                    ),
+                  ],
+                ),
               ),
               // work time
               TextFormField(
-                controller: _workLogTimeController..text = '${widget.spent.inHours.remainder(60).toString()}:${widget.spent.inMinutes.remainder(60).toString()}:${widget.spent.inSeconds.remainder(60).toString().padLeft(2, '0')}',
+                controller: _workLogTimeController
+                  ..text =
+                      '${widget.spent.inHours.remainder(60).toString()}:${widget.spent.inMinutes.remainder(60).toString()}:${widget.spent.inSeconds.remainder(60).toString().padLeft(2, '0')}',
                 autovalidate: true,
                 enabled: false,
                 decoration: InputDecoration(

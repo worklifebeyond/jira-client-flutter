@@ -8,13 +8,16 @@ import 'package:jira_time/constant/jqls.dart';
 import 'package:jira_time/constant/themes.dart';
 import 'package:jira_time/generated/i18n.dart';
 import 'package:jira_time/pages/issue.dart';
+import 'package:jira_time/pages/log_timer.dart';
 import 'package:jira_time/pages/login.dart';
 import 'package:jira_time/pages/newIssue.dart';
 import 'package:jira_time/pages/settings.dart';
 import 'package:jira_time/redux/modules/theme.dart';
 import 'package:jira_time/util/lodash.dart';
+import 'package:jira_time/util/notification.dart';
 import 'package:jira_time/util/redux.dart';
 import 'package:jira_time/util/response.dart';
+import 'package:jira_time/util/storage.dart';
 import 'package:jira_time/util/system.dart';
 import 'package:jira_time/widgets/customSvg.dart';
 import 'package:jira_time/widgets/customAvatar.dart';
@@ -39,13 +42,57 @@ class _DashboardState extends State<Dashboard> with TickerProviderStateMixin {
   bool _doubleClickToExit = false;
   bool _loaded = false;
   bool _fetching = false;
+  Storage localStorage;
 
   @override
   void initState() {
     super.initState();
+    localStorage = Storage();
     _tabController = TabController(vsync: this, length: 0);
     displayStatusBar();
     initData(context);
+    if (localStorage.isCounting()) {
+      WidgetsBinding.instance.addPostFrameCallback((_) async {
+        _showDialog();
+      });
+    }
+  }
+
+  void _showDialog() {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title:
+          Text("[${localStorage.getCurrentLog().issueKey}] WorkLog in progress"),
+          content: Text("${localStorage.getCurrentLog().taskName}"),
+          actions: <Widget>[
+            FlatButton(
+              child: Text("Close"),
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+            ),
+            FlatButton(
+              child: Text("Go to Work Log"),
+              onPressed: () {
+                Navigator.of(context)
+                    .push(
+                  MaterialPageRoute(
+                    builder: (context) =>
+                        LogTimer(localStorage.getCurrentLog(), true),
+                  ),
+                )
+                    .then((value) {
+                  Navigator.of(context).pop();
+                });
+                //Navigator.pop(context, true);
+              },
+            ),
+          ],
+        );
+      },
+    );
   }
 
   void initData(BuildContext context) {
@@ -63,7 +110,8 @@ class _DashboardState extends State<Dashboard> with TickerProviderStateMixin {
         this._projects = payloads[1];
         this._customFilter = payloads[2];
         this._stateCategories = payloads[3];
-        this._tabController = TabController(vsync: this, length: this._stateCategories.length);
+        this._tabController =
+            TabController(vsync: this, length: this._stateCategories.length);
         this._loaded = true;
       });
     }, onError: (e) {
@@ -92,7 +140,8 @@ class _DashboardState extends State<Dashboard> with TickerProviderStateMixin {
   }
 
   bool isIssueInStateCategory(issue, stateCategory) =>
-      issue['fields']['status']['statusCategory']['key'] == stateCategory['key'];
+      issue['fields']['status']['statusCategory']['key'] ==
+      stateCategory['key'];
 
   /*
   * 初始化页面以及点击 drawer 之后触发
@@ -134,12 +183,14 @@ class _DashboardState extends State<Dashboard> with TickerProviderStateMixin {
       controller: _tabController,
       children: _stateCategories.map((stateCategory) {
         // every tab
-        final issues = _issues.where((issue) => isIssueInStateCategory(issue, stateCategory));
+        final issues = _issues
+            .where((issue) => isIssueInStateCategory(issue, stateCategory));
         return issues.length > 0
             // render every column
             ? ListView(
-                children: issues.map((issue) => IssueItem(issue) as Widget).toList()
-                  ..add(EndLine(S.of(context).no_more_data)),
+                children:
+                    issues.map((issue) => IssueItem(issue) as Widget).toList()
+                      ..add(EndLine(S.of(context).no_more_data)),
               )
             // render tips
             : PlaceholderText(
@@ -278,7 +329,8 @@ class _DashboardState extends State<Dashboard> with TickerProviderStateMixin {
       ListTile(
         title: Text(S.of(context).dark_mode),
         leading: Icon(Icons.brightness_2),
-        onTap: () => this.handleSwitchToDartTheme(getAppState(context).theme != Themes.DARK),
+        onTap: () => this
+            .handleSwitchToDartTheme(getAppState(context).theme != Themes.DARK),
         trailing: Switch(
           value: getAppState(context).theme == Themes.DARK,
           onChanged: this.handleSwitchToDartTheme,
@@ -288,7 +340,8 @@ class _DashboardState extends State<Dashboard> with TickerProviderStateMixin {
         title: Text(S.of(context).settings),
         leading: Icon(Icons.settings),
         onTap: () {
-          Navigator.of(context).push(MaterialPageRoute(builder: (context) => Settings()));
+          Navigator.of(context)
+              .push(MaterialPageRoute(builder: (context) => Settings()));
         },
       ),
       ListTile(
@@ -475,7 +528,8 @@ class IssueItem extends StatelessWidget {
     final payload = data['fields'];
     return GestureDetector(
       onTap: () {
-        Navigator.of(context).push(MaterialPageRoute(builder: (context) => Issue(data['key'])));
+        Navigator.of(context)
+            .push(MaterialPageRoute(builder: (context) => Issue(data['key'])));
       },
       child: CustomCard(
         header: buildHeader(context),

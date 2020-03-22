@@ -5,6 +5,7 @@ import 'package:jira_time/actions/api.dart';
 import 'package:jira_time/generated/i18n.dart';
 import 'package:jira_time/models/logtime.dart';
 import 'package:jira_time/util/customDialog.dart';
+import 'package:jira_time/util/notification.dart';
 import 'package:jira_time/util/storage.dart';
 import 'package:jira_time/widgets/loading.dart';
 
@@ -24,6 +25,7 @@ class _LogTimerState extends State<LogTimer> with TickerProviderStateMixin {
   AnimationController _controller;
   int levelClock = 663899990;
   Storage localStorage;
+  LocalNotification localnotification;
 
   int spent = 0;
 
@@ -44,6 +46,7 @@ class _LogTimerState extends State<LogTimer> with TickerProviderStateMixin {
       );
       Navigator.of(context).pop(); // exit input dialog
       await localStorage.setCounting(false);
+      localnotification.cancelAll();
       Fluttertoast.showToast(msg: S.of(context).submitted_successful+"\n Please pull to refresh issue");
       Navigator.of(context).pop();
     } catch (e) {
@@ -64,7 +67,11 @@ class _LogTimerState extends State<LogTimer> with TickerProviderStateMixin {
 
   @override
   void initState() {
+
     localStorage = Storage();
+    localnotification = LocalNotification();
+    localnotification.display(this.widget.logTime);
+
     spent =
         ((DateTime.now().millisecondsSinceEpoch - widget.logTime.startedAt) /
                 1000)
@@ -75,6 +82,7 @@ class _LogTimerState extends State<LogTimer> with TickerProviderStateMixin {
     _controller.forward();
     super.initState();
   }
+
 
   @override
   Widget build(BuildContext context) {
@@ -90,7 +98,7 @@ class _LogTimerState extends State<LogTimer> with TickerProviderStateMixin {
               padding: EdgeInsets.all(6),
               child: Text(
                 (widget.isFromCurrentIssue)
-                    ? "Your Work Log is on progress"
+                    ? "Your Work Log is in progress"
                     : "Cannot create Work Log because you're in another Work Log. Please submit or cancel your current Work Log",
                 style: TextStyle(
                     color: Colors.white,
@@ -185,6 +193,7 @@ class _LogTimerState extends State<LogTimer> with TickerProviderStateMixin {
                     textColor: Colors.white,
                     onPressed: () async {
                       await localStorage.setCounting(false);
+                      await localnotification.cancelAll();
                       Navigator.of(context).pop();
                     },
                   )
