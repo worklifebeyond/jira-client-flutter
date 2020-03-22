@@ -31,6 +31,11 @@ class _LogTimerState extends State<LogTimer> with TickerProviderStateMixin {
 
   handleSubmitWorkLog(
       String workLogComment, DateTime started, int timeSpentSeconds) async {
+    if(timeSpentSeconds < 60){
+      Fluttertoast.showToast(
+          msg: "Time spent is too short, minimal 1 minute to submit");
+      return;
+    }
     // post to server
     try {
       showDialog(
@@ -47,7 +52,9 @@ class _LogTimerState extends State<LogTimer> with TickerProviderStateMixin {
       Navigator.of(context).pop(); // exit input dialog
       await localStorage.setCounting(false);
       localnotification.cancelAll();
-      Fluttertoast.showToast(msg: S.of(context).submitted_successful+"\n Please pull to refresh issue");
+      Fluttertoast.showToast(
+          msg: S.of(context).submitted_successful +
+              "\n Please pull to refresh issue");
       Navigator.of(context).pop();
     } catch (e) {
       print((e as DioError).request.data);
@@ -67,7 +74,6 @@ class _LogTimerState extends State<LogTimer> with TickerProviderStateMixin {
 
   @override
   void initState() {
-
     localStorage = Storage();
     localnotification = LocalNotification();
     localnotification.display(this.widget.logTime);
@@ -82,7 +88,6 @@ class _LogTimerState extends State<LogTimer> with TickerProviderStateMixin {
     _controller.forward();
     super.initState();
   }
-
 
   @override
   Widget build(BuildContext context) {
@@ -121,6 +126,26 @@ class _LogTimerState extends State<LogTimer> with TickerProviderStateMixin {
                           fontWeight: FontWeight.bold),
                       textAlign: TextAlign.left,
                     )),
+            Text(
+              "Task:",
+              style: TextStyle(
+                  color: Colors.black,
+                  fontSize: 14,
+                  fontWeight: FontWeight.bold),
+              textAlign: TextAlign.left,
+            ),
+            Text(
+              "[${widget.logTime.issueKey}] ${widget.logTime.summary}",
+              style: TextStyle(
+                  color: Colors.black,
+                  fontSize: 14,
+                  fontWeight: FontWeight.normal,
+                  fontStyle: FontStyle.normal),
+              textAlign: TextAlign.center,
+            ),
+            Container(
+              margin: EdgeInsets.only(bottom: 2, top: 20),
+            ),
             Text(
               "Description:",
               style: TextStyle(
@@ -174,11 +199,17 @@ class _LogTimerState extends State<LogTimer> with TickerProviderStateMixin {
                                       widget.logTime.startedAt) /
                                   1000)
                               .round());
+                      if(clockTimer.inSeconds < 60){
+                        Fluttertoast.showToast(
+                            msg: "Time spent is too short, minimal 1 minute to submit");
+                        return;
+                      }
                       showCustomDialog(
                         context: context,
                         child: WorkLogInput(
                           onSubmit: this.handleSubmitWorkLog,
-                          workTime: DateTime.fromMillisecondsSinceEpoch(widget.logTime.startedAt),
+                          workTime: DateTime.fromMillisecondsSinceEpoch(
+                              widget.logTime.startedAt),
                           spent: clockTimer,
                         ),
                         barrierDismissible: false,

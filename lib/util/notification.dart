@@ -5,7 +5,7 @@ class LocalNotification {
   Function onSelect = (String payload) async {
     print('notification payload: ' + payload);
   };
-  final _settingsAndroid = AndroidInitializationSettings('logo');
+  final _settingsAndroid = AndroidInitializationSettings('ic_launcher');
   final _settingsIOS = IOSInitializationSettings();
   var _notification;
 
@@ -17,7 +17,7 @@ class LocalNotification {
     var platformChannelSpecifics =
         NotificationDetails(androidPlatformChannelSpecifics, iOSPlatformChannelSpecifics);
 
-    _notification.show(0, '[${logTime.issueKey}] Your Work Log is in Progress', logTime.taskName, platformChannelSpecifics, payload: logTime.toMap().toString());
+    _notification.show(0, 'Your Work Log is in Progress', "[${logTime.issueKey}] ${logTime.summary} ", platformChannelSpecifics, payload: logTime.toMap().toString());
   }
 
   Future<void> cancelAll() async {

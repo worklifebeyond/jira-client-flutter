@@ -168,7 +168,7 @@ class _IssueState extends State<Issue> with SingleTickerProviderStateMixin {
   handleOnLogTime(BuildContext context) async {
     final payload = this._issueData['fields'];
     LogTime logTime = LogTime(DateTime.now().millisecondsSinceEpoch,
-        payload['description'] ?? this.issueKey, this.issueKey);
+        payload['description'] ?? this.issueKey, this.issueKey, payload['summary'],);
     if (storage.isCounting()) {
       logTime = storage.getCurrentLog();
     } else {
