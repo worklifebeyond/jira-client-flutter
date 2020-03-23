@@ -8,12 +8,14 @@ import 'package:jira_time/util/customDialog.dart';
 import 'package:jira_time/util/notification.dart';
 import 'package:jira_time/util/storage.dart';
 import 'package:jira_time/widgets/loading.dart';
+import 'package:livestream/livestream.dart';
 
 import 'issue.dart';
 
 class LogTimer extends StatefulWidget {
   final LogTime logTime;
   final bool isFromCurrentIssue;
+
 
   @override
   _LogTimerState createState() => _LogTimerState();
@@ -26,6 +28,7 @@ class _LogTimerState extends State<LogTimer> with TickerProviderStateMixin {
   int levelClock = 663899990;
   Storage localStorage;
   LocalNotification localnotification;
+  LiveStream liveStream = new LiveStream();
 
   int spent = 0;
 
@@ -55,6 +58,7 @@ class _LogTimerState extends State<LogTimer> with TickerProviderStateMixin {
       Fluttertoast.showToast(
           msg: S.of(context).submitted_successful +
               "\n Please pull to refresh issue");
+      liveStream.emit("counting",  false);
       Navigator.of(context).pop();
     } catch (e) {
       print((e as DioError).request.data);
@@ -225,6 +229,7 @@ class _LogTimerState extends State<LogTimer> with TickerProviderStateMixin {
                     onPressed: () async {
                       await localStorage.setCounting(false);
                       await localnotification.cancelAll();
+                      liveStream.emit("counting",  false);
                       Navigator.of(context).pop();
                     },
                   )

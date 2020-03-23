@@ -25,6 +25,7 @@ import 'package:jira_time/widgets/customCard.dart';
 import 'package:jira_time/widgets/endLine.dart';
 import 'package:jira_time/widgets/loading.dart';
 import 'package:jira_time/widgets/placeholderText.dart';
+import 'package:livestream/livestream.dart';
 
 class Dashboard extends StatefulWidget {
   @override
@@ -43,14 +44,25 @@ class _DashboardState extends State<Dashboard> with TickerProviderStateMixin {
   bool _loaded = false;
   bool _fetching = false;
   Storage localStorage;
+  bool stopReminderByStream = false;
+  LiveStream liveStream = new LiveStream();
 
   @override
   void initState() {
-    super.initState();
     localStorage = Storage();
+    super.initState();
     _tabController = TabController(vsync: this, length: 0);
     displayStatusBar();
     initData(context);
+    initLiveStream();
+  }
+
+  void initLiveStream() {
+    liveStream.on("counting", (value) {
+      setState(() {
+        stopReminderByStream = value;
+      });
+    });
   }
 
   void initData(BuildContext context) {
@@ -200,61 +212,64 @@ class _DashboardState extends State<Dashboard> with TickerProviderStateMixin {
         tooltip: S.of(context).new_issue,
         child: Icon(Icons.add),
       ),
-      bottomNavigationBar: (localStorage.isCounting()) ? Stack(
-        children: [
-          InkWell(
-            onTap: () {
-              Navigator.of(context).push(
-                MaterialPageRoute(
-                  builder: (context) =>
-                      LogTimer(localStorage.getCurrentLog(), true),
-                ),
-              );
-            },
-            child: Container(
-              height: 80.0,
-              color: Theme.of(context).primaryColor,
-              width: MediaQuery.of(context).size.width,
-              child: Container(
-                  padding: EdgeInsets.all(5.0),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    crossAxisAlignment: CrossAxisAlignment.center,
-                    children: <Widget>[
-                      Icon(
-                        Icons.access_alarms,
-                        color: Colors.white,
-                        size: 64.0,
-                        semanticLabel:
-                            'Text to announce in accessibility modes',
-                      ),
-                      Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: <Widget>[
-                          Text('Your Work Log is in progress:',
-                              style:
-                                  TextStyle(color: Colors.white, fontSize: 14)),
-                          Text(
-                            "[${localStorage.getCurrentLog().issueKey}] ${localStorage.getCurrentLog().summary}",
-                            style: TextStyle(
-                                color: Colors.white,
-                                fontSize: 16,
-                                fontWeight: FontWeight.bold,
-                                fontStyle: FontStyle.normal),
-                            textAlign: TextAlign.center,
+      bottomNavigationBar:
+          (localStorage.isCounting() && stopReminderByStream == false)
+              ? Stack(
+                  children: [
+                    InkWell(
+                      onTap: () {
+                        Navigator.of(context).push(
+                          MaterialPageRoute(
+                            builder: (context) =>
+                                LogTimer(localStorage.getCurrentLog(), true),
                           ),
-                          Text('Tap to open',
-                              style:
-                                  TextStyle(color: Colors.white, fontSize: 14)),
-                        ],
+                        );
+                      },
+                      child: Container(
+                        height: 80.0,
+                        color: Theme.of(context).primaryColor,
+                        width: MediaQuery.of(context).size.width,
+                        child: Container(
+                            padding: EdgeInsets.all(5.0),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              crossAxisAlignment: CrossAxisAlignment.center,
+                              children: <Widget>[
+                                Icon(
+                                  Icons.access_alarms,
+                                  color: Colors.white,
+                                  size: 64.0,
+                                  semanticLabel:
+                                      'Text to announce in accessibility modes',
+                                ),
+                                Column(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: <Widget>[
+                                    Text('Your Work Log is in progress:',
+                                        style: TextStyle(
+                                            color: Colors.white, fontSize: 14)),
+                                    Text(
+                                      "[${localStorage.getCurrentLog().issueKey}] ${localStorage.getCurrentLog().summary}",
+                                      style: TextStyle(
+                                          color: Colors.white,
+                                          fontSize: 16,
+                                          fontWeight: FontWeight.bold,
+                                          fontStyle: FontStyle.normal),
+                                      textAlign: TextAlign.center,
+                                    ),
+                                    Text('Tap to open',
+                                        style: TextStyle(
+                                            color: Colors.white, fontSize: 14)),
+                                  ],
+                                ),
+                              ],
+                            )),
                       ),
-                    ],
-                  )),
-            ),
-          )
-        ],
-      ) : null,
+                    )
+                  ],
+                )
+              : null,
     );
   }
 
