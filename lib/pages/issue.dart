@@ -138,6 +138,7 @@ class _IssueState extends State<Issue> with SingleTickerProviderStateMixin {
             return bTime.compareTo(aTime);
           });
       });
+
       return;
     }).catchError((onError) {
       return;
@@ -167,8 +168,12 @@ class _IssueState extends State<Issue> with SingleTickerProviderStateMixin {
 
   handleOnLogTime(BuildContext context) async {
     final payload = this._issueData['fields'];
-    LogTime logTime = LogTime(DateTime.now().millisecondsSinceEpoch,
-        payload['description'] ?? this.issueKey, this.issueKey, payload['summary'],);
+    LogTime logTime = LogTime(
+      DateTime.now().millisecondsSinceEpoch,
+      payload['description'] ?? this.issueKey,
+      this.issueKey,
+      payload['summary'],
+    );
     if (storage.isCounting()) {
       logTime = storage.getCurrentLog();
     } else {
@@ -212,8 +217,43 @@ class _IssueState extends State<Issue> with SingleTickerProviderStateMixin {
     }
   }
 
+  List<Map<String, dynamic>> getSpentTime() {
+    List<String> authors = [];
+    this._issueWorkLogs.forEach((workLogData) {
+      authors.add(workLogData['updateAuthor']['displayName']);
+    });
+
+    authors = authors.toSet().toList();
+    List<Map<String, dynamic>> spents = [];
+    authors.forEach((author) {
+      Map<String, dynamic> spent = Map();
+      spent['author'] = author;
+      spent['spent'] = 0;
+      spents.add(spent);
+    });
+
+    spents.forEach((spent) {
+      this._issueWorkLogs.forEach((workLogData) {
+        if (workLogData['updateAuthor']['displayName'] == spent['author']) {
+          spent['spent'] += workLogData['timeSpentSeconds'];
+        }
+      });
+    });
+
+    return spents;
+  }
+
   Widget buildContent(BuildContext context) {
     final payload = this._issueData['fields'];
+
+    List<Map<String, dynamic>> spentTime = this.getSpentTime();
+    int totalTime = 0;
+    spentTime.forEach((spent) {
+      totalTime += spent['spent'];
+    });
+
+    Duration totalDuration = Duration(seconds: totalTime);
+
     final double textHeight = 16.0;
     final listItems = <Widget>[
       Container(
@@ -313,6 +353,23 @@ class _IssueState extends State<Issue> with SingleTickerProviderStateMixin {
         trailing: UserDisplay(payload['assignee']),
       ),
     ];
+    //add spent time
+    listItems.add(LargeItem(
+        "Time Spent " +
+            '(Total ${totalDuration.inHours.remainder(60).toString()}:${totalDuration.inMinutes.remainder(60).toString()}:${totalDuration.inSeconds.remainder(60).toString().padLeft(2, '0')})',
+        child: Column(
+          children: spentTime.map((spent) {
+            Duration time = Duration(seconds: spent['spent']);
+            return ListTile(
+              title: Text(
+                spent['author'],
+                style: Theme.of(context).textTheme.bodyText1,
+              ),
+              trailing: Text(
+                  'Duration\n${time.inHours.remainder(60).toString()}:${time.inMinutes.remainder(60).toString()}:${time.inSeconds.remainder(60).toString().padLeft(2, '0')}'),
+            );
+          }).toList(),
+        )));
     // add description if exist
     if (payload['description'] != null) {
       listItems.add(LargeItem(
