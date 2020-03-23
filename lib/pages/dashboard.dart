@@ -51,48 +51,6 @@ class _DashboardState extends State<Dashboard> with TickerProviderStateMixin {
     _tabController = TabController(vsync: this, length: 0);
     displayStatusBar();
     initData(context);
-    if (localStorage.isCounting()) {
-      WidgetsBinding.instance.addPostFrameCallback((_) async {
-        _showDialog();
-      });
-    }
-  }
-
-  void _showDialog() {
-    showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          title:
-          Text("[${localStorage.getCurrentLog().issueKey}] WorkLog in progress"),
-          content: Text("${localStorage.getCurrentLog().taskName}"),
-          actions: <Widget>[
-            FlatButton(
-              child: Text("Close"),
-              onPressed: () {
-                Navigator.of(context).pop();
-              },
-            ),
-            FlatButton(
-              child: Text("Go to Work Log"),
-              onPressed: () {
-                Navigator.of(context)
-                    .push(
-                  MaterialPageRoute(
-                    builder: (context) =>
-                        LogTimer(localStorage.getCurrentLog(), true),
-                  ),
-                )
-                    .then((value) {
-                  Navigator.of(context).pop();
-                });
-                //Navigator.pop(context, true);
-              },
-            ),
-          ],
-        );
-      },
-    );
   }
 
   void initData(BuildContext context) {
@@ -242,6 +200,61 @@ class _DashboardState extends State<Dashboard> with TickerProviderStateMixin {
         tooltip: S.of(context).new_issue,
         child: Icon(Icons.add),
       ),
+      bottomNavigationBar: (localStorage.isCounting()) ? Stack(
+        children: [
+          InkWell(
+            onTap: () {
+              Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (context) =>
+                      LogTimer(localStorage.getCurrentLog(), true),
+                ),
+              );
+            },
+            child: Container(
+              height: 80.0,
+              color: Theme.of(context).primaryColor,
+              width: MediaQuery.of(context).size.width,
+              child: Container(
+                  padding: EdgeInsets.all(5.0),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: <Widget>[
+                      Icon(
+                        Icons.access_alarms,
+                        color: Colors.white,
+                        size: 64.0,
+                        semanticLabel:
+                            'Text to announce in accessibility modes',
+                      ),
+                      Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: <Widget>[
+                          Text('Your Work Log is in progress:',
+                              style:
+                                  TextStyle(color: Colors.white, fontSize: 14)),
+                          Text(
+                            "[${localStorage.getCurrentLog().issueKey}] ${localStorage.getCurrentLog().summary}",
+                            style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                                fontStyle: FontStyle.normal),
+                            textAlign: TextAlign.center,
+                          ),
+                          Text('Tap to open',
+                              style:
+                                  TextStyle(color: Colors.white, fontSize: 14)),
+                        ],
+                      ),
+                    ],
+                  )),
+            ),
+          )
+        ],
+      ) : null,
     );
   }
 
