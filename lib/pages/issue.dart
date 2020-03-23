@@ -36,7 +36,9 @@ class _IssueState extends State<Issue> with SingleTickerProviderStateMixin {
   List _issueComments;
   List _issueWorkLogs;
   List _issueTransitions = [];
+  List _issueAssignable = [];
   dynamic _selectedTransition;
+  dynamic _selectedAssignee;
   Storage storage;
   bool enableEdit = false;
 
@@ -60,7 +62,7 @@ class _IssueState extends State<Issue> with SingleTickerProviderStateMixin {
     fetchWorkLogs();
   }
 
-  refetchAll(){
+  refetchAll() {
     fetchIssue(this.issueKey).then((issueData) {
       setState(() {
         this._issueData = issueData;
@@ -91,6 +93,27 @@ class _IssueState extends State<Issue> with SingleTickerProviderStateMixin {
             final DateTime bTime = DateTime.parse(b['updated']);
             return bTime.compareTo(aTime);
           });
+      });
+    });
+  }
+
+  fetchAssignable({clear: false}) {
+    if (clear) {
+      setState(() {
+        this._issueAssignable = null;
+      });
+    }
+    fetchAssignableUser(this._issueData['fields']['project']['key'])
+        .then((assignable) {
+      setState(() {
+        this._issueAssignable = assignable;
+      });
+      assignable.forEach((user) {
+        if (user['key'] == this._issueData['fields']['assignee']['key']) {
+          setState(() {
+            this._selectedAssignee = user;
+          });
+        }
       });
     });
   }
@@ -352,7 +375,36 @@ class _IssueState extends State<Issue> with SingleTickerProviderStateMixin {
           S.of(context).assignee,
           style: Theme.of(context).textTheme.title,
         ),
-        trailing: UserDisplay(payload['assignee']),
+        trailing: (enableEdit == false)
+            ? UserDisplay(payload['assignee'])
+            : (this._selectedAssignee == null)
+                ? Loading(
+                    withoutContainer: true,
+                    backgroundColor: null,
+                  )
+                : Container(
+                    margin: EdgeInsets.only(right: 2),
+                    child: DropdownButton<dynamic>(
+                      value: (_selectedAssignee != null)
+                          ? _selectedAssignee['key']
+                          : null,
+                      items: this._issueAssignable.map((user) {
+                        return new DropdownMenuItem<dynamic>(
+                          value: user['key'],
+                          child: UserDisplay(user),
+                        );
+                      }).toList(),
+                      onChanged: (user) {
+                        List<dynamic> listSelected = _issueAssignable
+                            .where((element) => element['key'] == user)
+                            .toList();
+                        if (listSelected.length > 0) {
+                          setState(() {
+                            _selectedAssignee = listSelected[0];
+                          });
+                        }
+                      },
+                    )),
       ),
     ];
     //add spent time
@@ -486,16 +538,21 @@ class _IssueState extends State<Issue> with SingleTickerProviderStateMixin {
                       setState(() {
                         enableEdit = true;
                       });
+                      if (this._selectedAssignee == null) {
+                        this.fetchAssignable();
+                      }
                     },
                   ),
-            (enableEdit) ? IconButton(
-              icon: Icon(Icons.cancel),
-              onPressed: () {
-                setState(() {
-                  enableEdit = false;
-                });
-              },
-            ) : Container(),
+            (enableEdit)
+                ? IconButton(
+                    icon: Icon(Icons.cancel),
+                    onPressed: () {
+                      setState(() {
+                        enableEdit = false;
+                      });
+                    },
+                  )
+                : Container(),
           ],
         ),
         body: RefreshIndicator(

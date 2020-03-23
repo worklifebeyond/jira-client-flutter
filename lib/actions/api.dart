@@ -68,6 +68,14 @@ Future<List> fetchIssueTransition(String key) async {
   return response.data['transitions'];
 }
 
+
+Future<List> fetchAssignableUser(String project) async {
+  debugPrint("PROJECT "+project);
+  final response = await request.get('$API_USER/assignable/search?project=$project');
+  return response.data;
+}
+
+
 /*
 * 获取 issue comment
 * */
