@@ -38,6 +38,7 @@ class _IssueState extends State<Issue> with SingleTickerProviderStateMixin {
   List _issueTransitions = [];
   dynamic _selectedTransition;
   Storage storage;
+  bool enableEdit = false;
 
   final GlobalKey<RefreshIndicatorState> _refreshIndicatorKey =
       GlobalKey<RefreshIndicatorState>();
@@ -57,48 +58,17 @@ class _IssueState extends State<Issue> with SingleTickerProviderStateMixin {
     });
     fetchComments();
     fetchWorkLogs();
-    if (storage.isCounting()) {
-      WidgetsBinding.instance.addPostFrameCallback((_) async {
-        _showDialog();
-      });
-    }
   }
 
-  void _showDialog() {
-    showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          title:
-              Text("[${storage.getCurrentLog().issueKey}] WorkLog in progress"),
-          content: Text("${storage.getCurrentLog().taskName}"),
-          actions: <Widget>[
-            FlatButton(
-              child: Text("Close"),
-              onPressed: () {
-                Navigator.of(context).pop();
-              },
-            ),
-            FlatButton(
-              child: Text("Go to Work Log"),
-              onPressed: () {
-                Navigator.of(context)
-                    .push(
-                  MaterialPageRoute(
-                    builder: (context) =>
-                        LogTimer(storage.getCurrentLog(), true),
-                  ),
-                )
-                    .then((value) {
-                  Navigator.of(context).pop();
-                });
-                //Navigator.pop(context, true);
-              },
-            ),
-          ],
-        );
-      },
-    );
+  refetchAll(){
+    fetchIssue(this.issueKey).then((issueData) {
+      setState(() {
+        this._issueData = issueData;
+      });
+      fetchTransition();
+    });
+    fetchComments();
+    fetchWorkLogs();
   }
 
   @override
@@ -269,7 +239,8 @@ class _IssueState extends State<Issue> with SingleTickerProviderStateMixin {
   Widget buildContent(BuildContext context) {
     final payload = this._issueData['fields'];
 
-    List<Map<String, dynamic>> spentTime = (this._issueWorkLogs != null) ? this.getSpentTime() : [];
+    List<Map<String, dynamic>> spentTime =
+        (this._issueWorkLogs != null) ? this.getSpentTime() : [];
     int totalTime = 0;
     spentTime.forEach((spent) {
       totalTime += spent['spent'];
@@ -292,27 +263,31 @@ class _IssueState extends State<Issue> with SingleTickerProviderStateMixin {
           S.of(context).status,
           style: Theme.of(context).textTheme.title,
         ),
-        trailing: (_selectedTransition != null) ? Container(
-            margin: EdgeInsets.only(right: 2),
-            child: DropdownButton<dynamic>(
-              value: _selectedTransition['id'],
-              items: this._issueTransitions.map((transition) {
-                return new DropdownMenuItem<dynamic>(
-                  value: transition['id'],
-                  child: Text(transition['name']),
-                );
-              }).toList(),
-              onChanged: (transition) {
-                List<dynamic> listSelected = _issueTransitions
-                    .where((element) => element['id'] == transition)
-                    .toList();
-                if (listSelected.length > 0) {
-                  setState(() {
-                    _selectedTransition = listSelected[0];
-                  });
-                }
-              },
-            )) : Container(),
+        trailing: (enableEdit)
+            ? Container(
+                margin: EdgeInsets.only(right: 2),
+                child: DropdownButton<dynamic>(
+                  value: (_selectedTransition != null)
+                      ? _selectedTransition['id']
+                      : null,
+                  items: this._issueTransitions.map((transition) {
+                    return new DropdownMenuItem<dynamic>(
+                      value: transition['id'],
+                      child: Text(transition['name']),
+                    );
+                  }).toList(),
+                  onChanged: (transition) {
+                    List<dynamic> listSelected = _issueTransitions
+                        .where((element) => element['id'] == transition)
+                        .toList();
+                    if (listSelected.length > 0) {
+                      setState(() {
+                        _selectedTransition = listSelected[0];
+                      });
+                    }
+                  },
+                ))
+            : Text(payload['status']['name']),
       ),
       ListTile(
         title: Text(
@@ -486,6 +461,42 @@ class _IssueState extends State<Issue> with SingleTickerProviderStateMixin {
     return Scaffold(
         appBar: AppBar(
           title: Text(this.issueKey),
+          actions: <Widget>[
+            IconButton(
+              icon: Icon(Icons.refresh),
+              onPressed: () {
+                setState(() {
+                  this._issueData = null;
+                });
+                this.refetchAll();
+              },
+            ),
+            (enableEdit)
+                ? IconButton(
+                    icon: Icon(Icons.save),
+                    onPressed: () {
+                      setState(() {
+                        enableEdit = false;
+                      });
+                    },
+                  )
+                : IconButton(
+                    icon: Icon(Icons.mode_edit),
+                    onPressed: () {
+                      setState(() {
+                        enableEdit = true;
+                      });
+                    },
+                  ),
+            (enableEdit) ? IconButton(
+              icon: Icon(Icons.cancel),
+              onPressed: () {
+                setState(() {
+                  enableEdit = false;
+                });
+              },
+            ) : Container(),
+          ],
         ),
         body: RefreshIndicator(
             key: _refreshIndicatorKey,
