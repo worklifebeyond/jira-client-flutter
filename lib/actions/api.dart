@@ -55,6 +55,48 @@ Future<Map> createIssue(
   return response.data;
 }
 
+Future<Map> updateTransition(
+  String issueKey, {
+  String transitionId,
+  String nameKey,
+}) async {
+  dynamic data;
+  if (transitionId == null && nameKey != null) {
+    data = {
+      "fields": {
+        "assignee": {
+          "name": nameKey
+        }
+      }
+    };
+  }else if(nameKey == null && transitionId != null){
+    data = {
+      "transition": {
+        "id": transitionId
+      },
+    };
+  } else if(nameKey != null && transitionId != null){
+    data = {
+      "transition": {
+        "id": transitionId
+      },
+      "fields": {
+        "assignee": {
+          "name": nameKey
+        }
+      }
+    };
+  }else{
+    throw Error();
+  }
+
+  final response = await request.post(
+    '$API_ISSUE/$issueKey/transitions',
+    data: data
+  );
+  return response.data;
+}
+
 /*
 * 获取 issue详情
 * */
@@ -68,13 +110,12 @@ Future<List> fetchIssueTransition(String key) async {
   return response.data['transitions'];
 }
 
-
 Future<List> fetchAssignableUser(String project) async {
-  debugPrint("PROJECT "+project);
-  final response = await request.get('$API_USER/assignable/search?project=$project');
+  debugPrint("PROJECT " + project);
+  final response =
+      await request.get('$API_USER/assignable/search?project=$project');
   return response.data;
 }
-
 
 /*
 * 获取 issue comment
@@ -119,7 +160,10 @@ Future<List> addIssueWorkLogs(
   @required DateTime started,
   @required int timeSpentSeconds,
 }) async {
-  debugPrint("ISO "+started.toIso8601String()+" - "+DateTime.now().timeZoneOffset.toString());
+  debugPrint("ISO " +
+      started.toIso8601String() +
+      " - " +
+      DateTime.now().timeZoneOffset.toString());
   final response = await request.post('$API_ISSUE/$key/worklog', data: {
     'comment': workLogComment,
     'started': started.toIso8601String().substring(0, 22) + '+0000',
@@ -179,7 +223,9 @@ Future<List> fetchFavouriteFilter() async {
 * */
 Future<List> fetchAllStatusCategories() async {
   final response = await request.get(API_STATUS_CATEGORY);
-  return (response.data as List).where((item) => item['key'] != 'undefined').toList();
+  return (response.data as List)
+      .where((item) => item['key'] != 'undefined')
+      .toList();
 }
 
 /*
