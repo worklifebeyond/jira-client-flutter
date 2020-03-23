@@ -35,6 +35,8 @@ class _IssueState extends State<Issue> with SingleTickerProviderStateMixin {
   Map<String, dynamic> _issueData;
   List _issueComments;
   List _issueWorkLogs;
+  List _issueTransitions = [];
+  dynamic _selectedTransition;
   Storage storage;
 
   final GlobalKey<RefreshIndicatorState> _refreshIndicatorKey =
@@ -51,6 +53,7 @@ class _IssueState extends State<Issue> with SingleTickerProviderStateMixin {
       setState(() {
         this._issueData = issueData;
       });
+      fetchTransition();
     });
     fetchComments();
     fetchWorkLogs();
@@ -118,6 +121,26 @@ class _IssueState extends State<Issue> with SingleTickerProviderStateMixin {
             final DateTime bTime = DateTime.parse(b['updated']);
             return bTime.compareTo(aTime);
           });
+      });
+    });
+  }
+
+  fetchTransition({clear: false}) {
+    if (clear) {
+      setState(() {
+        this._issueTransitions = null;
+      });
+    }
+    fetchIssueTransition(this.issueKey).then((transitions) {
+      setState(() {
+        this._issueTransitions = transitions;
+      });
+      transitions.forEach((transition) {
+        if (transition['name'] == this._issueData['fields']['status']['name']) {
+          setState(() {
+            this._selectedTransition = transition;
+          });
+        }
       });
     });
   }
@@ -246,7 +269,7 @@ class _IssueState extends State<Issue> with SingleTickerProviderStateMixin {
   Widget buildContent(BuildContext context) {
     final payload = this._issueData['fields'];
 
-    List<Map<String, dynamic>> spentTime = this.getSpentTime();
+    List<Map<String, dynamic>> spentTime = (this._issueWorkLogs != null) ? this.getSpentTime() : [];
     int totalTime = 0;
     spentTime.forEach((spent) {
       totalTime += spent['spent'];
@@ -269,23 +292,27 @@ class _IssueState extends State<Issue> with SingleTickerProviderStateMixin {
           S.of(context).status,
           style: Theme.of(context).textTheme.title,
         ),
-        trailing: Wrap(
-          children: <Widget>[
-            Container(
-              margin: EdgeInsets.only(right: 2),
-              height: textHeight,
-              child: Image(
-                  image: NetworkImageWithCookie(payload['status']['iconUrl'])),
-            ),
-            Text(
-              $_get(
-                payload,
-                ['status', 'name'],
-                defaultData: S.of(context).unspecified,
-              ),
-            ),
-          ],
-        ),
+        trailing: (_selectedTransition != null) ? Container(
+            margin: EdgeInsets.only(right: 2),
+            child: DropdownButton<dynamic>(
+              value: _selectedTransition['id'],
+              items: this._issueTransitions.map((transition) {
+                return new DropdownMenuItem<dynamic>(
+                  value: transition['id'],
+                  child: Text(transition['name']),
+                );
+              }).toList(),
+              onChanged: (transition) {
+                List<dynamic> listSelected = _issueTransitions
+                    .where((element) => element['id'] == transition)
+                    .toList();
+                if (listSelected.length > 0) {
+                  setState(() {
+                    _selectedTransition = listSelected[0];
+                  });
+                }
+              },
+            )) : Container(),
       ),
       ListTile(
         title: Text(

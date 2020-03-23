@@ -63,6 +63,11 @@ Future<Map> fetchIssue(String key) async {
   return response.data;
 }
 
+Future<List> fetchIssueTransition(String key) async {
+  final response = await request.get('$API_ISSUE/$key/transitions');
+  return response.data['transitions'];
+}
+
 /*
 * 获取 issue comment
 * */
