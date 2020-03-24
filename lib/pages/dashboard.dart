@@ -63,6 +63,12 @@ class _DashboardState extends State<Dashboard> with TickerProviderStateMixin {
         stopReminderByStream = value;
       });
     });
+    liveStream.on("update_issue", (value) {
+      setState(() {
+        _loaded = false;
+      });
+      this.initData(context);
+    });
   }
 
   void initData(BuildContext context) {

@@ -18,6 +18,7 @@ import 'package:jira_time/util/lodash.dart';
 import 'package:jira_time/widgets/networkImageWithCookie.dart';
 import 'package:jira_time/widgets/placeholderText.dart';
 import 'package:jira_time/widgets/userDisplay.dart';
+import 'package:livestream/livestream.dart';
 
 import 'log_timer.dart';
 
@@ -41,6 +42,7 @@ class _IssueState extends State<Issue> with SingleTickerProviderStateMixin {
   dynamic _selectedAssignee;
   Storage storage;
   bool enableEdit = false;
+  LiveStream liveStream = new LiveStream();
 
   final GlobalKey<RefreshIndicatorState> _refreshIndicatorKey =
       GlobalKey<RefreshIndicatorState>();
@@ -51,6 +53,7 @@ class _IssueState extends State<Issue> with SingleTickerProviderStateMixin {
   void initState() {
     super.initState();
     // init issue data
+    this.initLiveStream();
     storage = Storage();
     fetchIssue(this.issueKey).then((issueData) {
       setState(() {
@@ -60,6 +63,15 @@ class _IssueState extends State<Issue> with SingleTickerProviderStateMixin {
     });
     fetchComments();
     fetchWorkLogs();
+  }
+
+  void initLiveStream() {
+    liveStream.on("counting", (value) {
+      setState(() {
+        this._issueWorkLogs = null;
+      });
+      this.fetchWorkLogs();
+    });
   }
 
   reFetchAll() {
@@ -78,6 +90,7 @@ class _IssueState extends State<Issue> with SingleTickerProviderStateMixin {
     });
     fetchComments();
     fetchWorkLogs();
+    liveStream.emit("update_issue", true);
   }
 
   @override
@@ -136,10 +149,11 @@ class _IssueState extends State<Issue> with SingleTickerProviderStateMixin {
         this._issueTransitions = transitions;
       });
       transitions.forEach((transition) {
-        debugPrint("TRANS "+transition['name'].toString());
-        debugPrint("TRANS 0 "+this._issueData['fields']['status']['name'].toString());
+        debugPrint("TRANS " + transition['name'].toString());
+        debugPrint("TRANS 0 " +
+            this._issueData['fields']['status']['name'].toString());
         if (transition['name'] == this._issueData['fields']['status']['name']) {
-          debugPrint("Transition "+transition.toString());
+          debugPrint("Transition " + transition.toString());
           setState(() {
             this._selectedTransition = transition;
           });
@@ -216,17 +230,22 @@ class _IssueState extends State<Issue> with SingleTickerProviderStateMixin {
   }
 
   handleSubmitUpdateTransition() async {
-    if(this._selectedTransition == null){
+    if (this._selectedTransition == null) {
       return Fluttertoast.showToast(msg: "Required fields must not be empty");
     }
     final payload = this._issueData['fields'];
-    String transitionId = (this._selectedTransition['id'] == payload['status']['id']) ? null : this._selectedTransition['id'];
-    if(transitionId == null){
+    String transitionId =
+        (this._selectedTransition['id'] == payload['status']['id'])
+            ? null
+            : this._selectedTransition['id'];
+    if (transitionId == null) {
       return Fluttertoast.showToast(msg: "Please select correct status");
     }
-    Fluttertoast.showToast(msg: "Updating issue, please wait...", toastLength: Toast.LENGTH_LONG);
+    Fluttertoast.showToast(
+        msg: "Updating issue, please wait...", toastLength: Toast.LENGTH_LONG);
     await updateTransition(this.issueKey, transitionId: transitionId);
-    Fluttertoast.showToast(msg: "Success update issue", toastLength: Toast.LENGTH_SHORT);
+    Fluttertoast.showToast(
+        msg: "Success update issue", toastLength: Toast.LENGTH_SHORT);
     setState(() {
       enableEdit = false;
     });
@@ -234,17 +253,23 @@ class _IssueState extends State<Issue> with SingleTickerProviderStateMixin {
   }
 
   handleUpdateAssignee() async {
-    if(this._selectedAssignee == null){
+    if (this._selectedAssignee == null) {
       return Fluttertoast.showToast(msg: "Required fields must not be empty");
     }
     final payload = this._issueData['fields'];
-    String nameKey = (this._selectedAssignee['key'] == payload['assignee']['key']) ? null : this._selectedAssignee['key'];
-    if(nameKey == null){
+    String nameKey =
+        (this._selectedAssignee['key'] == payload['assignee']['key'])
+            ? null
+            : this._selectedAssignee['key'];
+    if (nameKey == null) {
       return Fluttertoast.showToast(msg: "Please select correct assignee");
     }
-    Fluttertoast.showToast(msg: "Updating assignee, please wait...", toastLength: Toast.LENGTH_LONG);
+    Fluttertoast.showToast(
+        msg: "Updating assignee, please wait...",
+        toastLength: Toast.LENGTH_LONG);
     await updateAssignee(this.issueKey, nameKey);
-    Fluttertoast.showToast(msg: "Success update assignee", toastLength: Toast.LENGTH_SHORT);
+    Fluttertoast.showToast(
+        msg: "Success update assignee", toastLength: Toast.LENGTH_SHORT);
     setState(() {
       enableEdit = false;
     });
@@ -593,15 +618,11 @@ class _IssueState extends State<Issue> with SingleTickerProviderStateMixin {
                   ),
           ],
         ),
-        body: RefreshIndicator(
-            key: _refreshIndicatorKey,
-            onRefresh: this.fetchWorkLogs,
-            child: Padding(
-              padding: const EdgeInsets.all(0.0),
-              child: this._issueData != null
-                  ? this.buildContent(context)
-                  : Loading(),
-            ))
+        body: Padding(
+          padding: const EdgeInsets.all(0.0),
+          child:
+              this._issueData != null ? this.buildContent(context) : Loading(),
+        )
         //body: this._issueData != null ? this.buildContent(context) : Loading(),
         );
   }
