@@ -55,46 +55,23 @@ Future<Map> createIssue(
   return response.data;
 }
 
-Future<Map> updateTransition(
-  String issueKey, {
-  String transitionId,
-  String nameKey,
-}) async {
-  dynamic data;
-  if (transitionId == null && nameKey != null) {
-    data = {
-      "fields": {
-        "assignee": {
-          "name": nameKey
-        }
-      }
-    };
-  }else if(nameKey == null && transitionId != null){
-    data = {
-      "transition": {
-        "id": transitionId
-      },
-    };
-  } else if(nameKey != null && transitionId != null){
-    data = {
-      "transition": {
-        "id": transitionId
-      },
-      "fields": {
-        "assignee": {
-          "name": nameKey
-        }
-      }
-    };
-  }else{
-    throw Error();
-  }
+Future<void> updateTransition(String issueKey, {String transitionId}) async {
+  dynamic data = {
+    "transition": {"id": transitionId},
+  };
 
-  final response = await request.post(
-    '$API_ISSUE/$issueKey/transitions',
-    data: data
-  );
-  return response.data;
+  await request.post('$API_ISSUE/$issueKey/transitions', data: data);
+  return;
+}
+
+Future<void> updateAssignee(
+  String issueKey,
+  String name,
+) async {
+  dynamic data = {"name": name};
+
+  await request.put('$API_ISSUE/$issueKey/assignee', data: data);
+  return;
 }
 
 /*

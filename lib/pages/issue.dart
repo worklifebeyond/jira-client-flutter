@@ -62,7 +62,14 @@ class _IssueState extends State<Issue> with SingleTickerProviderStateMixin {
     fetchWorkLogs();
   }
 
-  refetchAll() {
+  reFetchAll() {
+    setState(() {
+      this._issueData = null;
+      this._selectedAssignee = null;
+      this._selectedTransition = null;
+      this._issueAssignable = null;
+      this._issueTransitions = null;
+    });
     fetchIssue(this.issueKey).then((issueData) {
       setState(() {
         this._issueData = issueData;
@@ -129,7 +136,10 @@ class _IssueState extends State<Issue> with SingleTickerProviderStateMixin {
         this._issueTransitions = transitions;
       });
       transitions.forEach((transition) {
+        debugPrint("TRANS "+transition['name'].toString());
+        debugPrint("TRANS 0 "+this._issueData['fields']['status']['name'].toString());
         if (transition['name'] == this._issueData['fields']['status']['name']) {
+          debugPrint("Transition "+transition.toString());
           setState(() {
             this._selectedTransition = transition;
           });
@@ -203,6 +213,42 @@ class _IssueState extends State<Issue> with SingleTickerProviderStateMixin {
             LogTimer(logTime, (logTime.issueKey == this.issueKey)),
       ),
     );
+  }
+
+  handleSubmitUpdateTransition() async {
+    if(this._selectedTransition == null){
+      return Fluttertoast.showToast(msg: "Required fields must not be empty");
+    }
+    final payload = this._issueData['fields'];
+    String transitionId = (this._selectedTransition['id'] == payload['status']['id']) ? null : this._selectedTransition['id'];
+    if(transitionId == null){
+      return Fluttertoast.showToast(msg: "Please select correct status");
+    }
+    Fluttertoast.showToast(msg: "Updating issue, please wait...", toastLength: Toast.LENGTH_LONG);
+    await updateTransition(this.issueKey, transitionId: transitionId);
+    Fluttertoast.showToast(msg: "Success update issue", toastLength: Toast.LENGTH_SHORT);
+    setState(() {
+      enableEdit = false;
+    });
+    this.reFetchAll();
+  }
+
+  handleUpdateAssignee() async {
+    if(this._selectedAssignee == null){
+      return Fluttertoast.showToast(msg: "Required fields must not be empty");
+    }
+    final payload = this._issueData['fields'];
+    String nameKey = (this._selectedAssignee['key'] == payload['assignee']['key']) ? null : this._selectedAssignee['key'];
+    if(nameKey == null){
+      return Fluttertoast.showToast(msg: "Please select correct assignee");
+    }
+    Fluttertoast.showToast(msg: "Updating assignee, please wait...", toastLength: Toast.LENGTH_LONG);
+    await updateAssignee(this.issueKey, nameKey);
+    Fluttertoast.showToast(msg: "Success update assignee", toastLength: Toast.LENGTH_SHORT);
+    setState(() {
+      enableEdit = false;
+    });
+    this.reFetchAll();
   }
 
   handleSubmitWorkLog(
@@ -307,6 +353,7 @@ class _IssueState extends State<Issue> with SingleTickerProviderStateMixin {
                       setState(() {
                         _selectedTransition = listSelected[0];
                       });
+                      this.handleSubmitUpdateTransition();
                     }
                   },
                 ))
@@ -402,6 +449,7 @@ class _IssueState extends State<Issue> with SingleTickerProviderStateMixin {
                           setState(() {
                             _selectedAssignee = listSelected[0];
                           });
+                          this.handleUpdateAssignee();
                         }
                       },
                     )),
@@ -520,12 +568,12 @@ class _IssueState extends State<Issue> with SingleTickerProviderStateMixin {
                 setState(() {
                   this._issueData = null;
                 });
-                this.refetchAll();
+                this.reFetchAll();
               },
             ),
             (enableEdit)
                 ? IconButton(
-                    icon: Icon(Icons.save),
+                    icon: Icon(Icons.clear),
                     onPressed: () {
                       setState(() {
                         enableEdit = false;
@@ -543,16 +591,6 @@ class _IssueState extends State<Issue> with SingleTickerProviderStateMixin {
                       }
                     },
                   ),
-            (enableEdit)
-                ? IconButton(
-                    icon: Icon(Icons.cancel),
-                    onPressed: () {
-                      setState(() {
-                        enableEdit = false;
-                      });
-                    },
-                  )
-                : Container(),
           ],
         ),
         body: RefreshIndicator(
