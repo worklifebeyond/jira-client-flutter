@@ -1,3 +1,22 @@
+### Jira Time Tracking
+Track your Work Log and time spent of an issue
+
+Using jira `Basic Auth`, so it's not recomended for Jira `cloud` or `server` with version above `8.0.0`
+
+### Authentication
+
+Authentication screen requires 3 credentials:
+  * jira `url`
+  * username or `key` of your account
+  * password
+  
+### Download
+
+* For android version, you can find a `APK` file in release tab. Current version is `0.0.5`. [Download APK](https://github.com/worklifebeyond/jira-time-tracking/releases/tag/0.0.5)
+* For iOS version, you can build by yourself from source
+
+
+
 ### Features
 
 | Screen Name | Screen  | Feature |
