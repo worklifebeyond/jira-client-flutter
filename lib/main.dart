@@ -82,6 +82,7 @@ void main() async {
           store.state.env.savedUsername,
           store.state.env.savedPwd,
         );
+        await Storage().setUser(store.state.env.savedUsername);
       } catch (e) {
         autoAuth = false;
       }

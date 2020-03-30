@@ -149,11 +149,7 @@ class _IssueState extends State<Issue> with SingleTickerProviderStateMixin {
         this._issueTransitions = transitions;
       });
       transitions.forEach((transition) {
-        debugPrint("TRANS " + transition['name'].toString());
-        debugPrint("TRANS 0 " +
-            this._issueData['fields']['status']['name'].toString());
         if (transition['name'] == this._issueData['fields']['status']['name']) {
-          debugPrint("Transition " + transition.toString());
           setState(() {
             this._selectedTransition = transition;
           });

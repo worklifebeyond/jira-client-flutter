@@ -88,7 +88,6 @@ Future<List> fetchIssueTransition(String key) async {
 }
 
 Future<List> fetchAssignableUser(String project) async {
-  debugPrint("PROJECT " + project);
   final response =
       await request.get('$API_USER/assignable/search?project=$project');
   return response.data;
@@ -137,10 +136,6 @@ Future<List> addIssueWorkLogs(
   @required DateTime started,
   @required int timeSpentSeconds,
 }) async {
-  debugPrint("ISO " +
-      started.toIso8601String() +
-      " - " +
-      DateTime.now().timeZoneOffset.toString());
   final response = await request.post('$API_ISSUE/$key/worklog', data: {
     'comment': workLogComment,
     'started': started.toIso8601String().substring(0, 22) + '+0000',

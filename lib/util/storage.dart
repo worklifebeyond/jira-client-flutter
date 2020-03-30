@@ -13,6 +13,17 @@ class Storage {
     return storage.getItem("counting") ?? false;
   }
 
+  String getUser(){
+    Map<String, dynamic> m = storage.getItem("user");
+    return m['user'];
+  }
+
+  Future<void> setUser(String user) async {
+    Map<String, dynamic> m = new Map();
+    m['user'] = user;
+    await storage.setItem("user", m);
+  }
+
   Future<void> setCounting(bool counting) async {
     await storage.setItem("counting", counting);
   }

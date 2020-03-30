@@ -10,6 +10,7 @@ import 'package:jira_time/util/storage.dart';
 import 'package:jira_time/widgets/loading.dart';
 import 'package:livestream/livestream.dart';
 
+import '../mattermost.dart';
 import 'issue.dart';
 
 class LogTimer extends StatefulWidget {
@@ -52,6 +53,12 @@ class _LogTimerState extends State<LogTimer> with TickerProviderStateMixin {
         started: started,
         timeSpentSeconds: timeSpentSeconds,
       );
+      await MatterMost().submitWorkLog(
+        widget.logTime.issueKey,
+        workLogComment: workLogComment,
+        started: started,
+        timeSpentSeconds: timeSpentSeconds,
+      );
       Navigator.of(context).pop(); // exit input dialog
       await localStorage.setCounting(false);
       localnotification.cancelAll();
@@ -81,10 +88,9 @@ class _LogTimerState extends State<LogTimer> with TickerProviderStateMixin {
     localStorage = Storage();
     localnotification = LocalNotification();
     localnotification.display(this.widget.logTime);
-
     spent =
         ((DateTime.now().millisecondsSinceEpoch - widget.logTime.startedAt) /
-                1000)
+            1000)
             .round();
     _controller = AnimationController(
         vsync: this, duration: Duration(seconds: levelClock));
@@ -121,15 +127,15 @@ class _LogTimerState extends State<LogTimer> with TickerProviderStateMixin {
             (widget.isFromCurrentIssue)
                 ? Container()
                 : Container(
-                    margin: EdgeInsets.only(bottom: 10),
-                    child: Text(
-                      "Current Work Log",
-                      style: TextStyle(
-                          color: Colors.teal,
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold),
-                      textAlign: TextAlign.left,
-                    )),
+                margin: EdgeInsets.only(bottom: 10),
+                child: Text(
+                  "Current Work Log",
+                  style: TextStyle(
+                      color: Colors.teal,
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold),
+                  textAlign: TextAlign.left,
+                )),
             Text(
               "Task:",
               style: TextStyle(
@@ -180,9 +186,9 @@ class _LogTimerState extends State<LogTimer> with TickerProviderStateMixin {
             ),
             Countdown(
                 animation: StepTween(
-              begin: spent, // THIS IS A USER ENTERED NUMBER
-              end: levelClock,
-            ).animate(_controller)),
+                  begin: spent, // THIS IS A USER ENTERED NUMBER
+                  end: levelClock,
+                ).animate(_controller)),
             Container(
               margin: EdgeInsets.only(top: 30),
             ),
@@ -200,8 +206,8 @@ class _LogTimerState extends State<LogTimer> with TickerProviderStateMixin {
                     onPressed: () async {
                       Duration clockTimer = Duration(
                           seconds: ((DateTime.now().millisecondsSinceEpoch -
-                                      widget.logTime.startedAt) /
-                                  1000)
+                              widget.logTime.startedAt) /
+                              1000)
                               .round());
                       if(clockTimer.inSeconds < 60){
                         Fluttertoast.showToast(

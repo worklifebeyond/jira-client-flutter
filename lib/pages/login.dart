@@ -4,6 +4,7 @@ import 'package:jira_time/actions/actions.dart';
 import 'package:jira_time/generated/i18n.dart';
 import 'package:jira_time/main.dart';
 import 'package:jira_time/redux/store.dart';
+import 'package:jira_time/util/storage.dart';
 import 'package:jira_time/util/system.dart';
 import 'package:jira_time/widgets/loading.dart';
 import 'package:jira_time/pages/dashboard.dart';
@@ -46,6 +47,8 @@ class _LoginState extends State<Login> {
     });
     if (errorMessage == null) {
       // go to dashboard and remove this page
+      Storage storage = Storage();
+      await storage.setUser(_usernameController.text);
       print('go to dashboard');
       Navigator.of(context).pushAndRemoveUntil(
         new MaterialPageRoute(builder: (context) => Dashboard()),
