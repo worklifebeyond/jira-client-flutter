@@ -28,6 +28,8 @@
 /build/
 pubspec.lock
 
+/lib/mattermost.dart
+
 # Android related
 **/android/**/gradle-wrapper.jar
 **/android/.gradle
