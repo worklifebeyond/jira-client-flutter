@@ -9,7 +9,7 @@ Authentication screen requires 3 credentials:
   
 ### Download
 
-* For android version, you can find a `APK` file in release tab. Current version is `0.0.6`. [Download APK](https://github.com/worklifebeyond/jira-time-tracking/releases/tag/0.0.6)
+* For android version, you can find an `APK` file in release tab. Current version is `0.0.6`. [Download APK](https://github.com/worklifebeyond/jira-time-tracking/releases/tag/0.0.6)
 * For iOS version, you can build by yourself from source
 
 
