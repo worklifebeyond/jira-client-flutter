@@ -27,6 +27,8 @@ import 'package:jira_time/widgets/loading.dart';
 import 'package:jira_time/widgets/placeholderText.dart';
 import 'package:livestream/livestream.dart';
 
+enum ReminderType {IDLE, FALSE, TRUE}
+
 class Dashboard extends StatefulWidget {
   @override
   _DashboardState createState() => _DashboardState();
@@ -44,12 +46,18 @@ class _DashboardState extends State<Dashboard> with TickerProviderStateMixin {
   bool _loaded = false;
   bool _fetching = false;
   Storage localStorage;
-  bool stopReminderByStream = false;
+  ReminderType isStreamCountingRunning = ReminderType.IDLE;
   LiveStream liveStream = new LiveStream();
+  bool isCounting = false;
 
   @override
   void initState() {
     localStorage = Storage();
+    localStorage.isCounting().then((value) {
+      setState(() {
+        isCounting = value;
+      });
+    });
     super.initState();
     _tabController = TabController(vsync: this, length: 0);
     displayStatusBar();
@@ -60,7 +68,7 @@ class _DashboardState extends State<Dashboard> with TickerProviderStateMixin {
   void initLiveStream() {
     liveStream.on("counting", (value) {
       setState(() {
-        stopReminderByStream = value;
+        isStreamCountingRunning = (value == false) ? ReminderType.FALSE : ReminderType.TRUE;
       });
     });
     liveStream.on("update_issue", (value) {
@@ -219,7 +227,7 @@ class _DashboardState extends State<Dashboard> with TickerProviderStateMixin {
         child: Icon(Icons.add),
       ),
       bottomNavigationBar:
-          (localStorage.isCounting() && stopReminderByStream == false)
+          ((isStreamCountingRunning == ReminderType.IDLE && isCounting) || isStreamCountingRunning == ReminderType.TRUE)
               ? Stack(
                   children: [
                     InkWell(

@@ -43,6 +43,7 @@ class _IssueState extends State<Issue> with SingleTickerProviderStateMixin {
   Storage storage;
   bool enableEdit = false;
   LiveStream liveStream = new LiveStream();
+  bool isCounting = false;
 
   final GlobalKey<RefreshIndicatorState> _refreshIndicatorKey =
       GlobalKey<RefreshIndicatorState>();
@@ -63,14 +64,22 @@ class _IssueState extends State<Issue> with SingleTickerProviderStateMixin {
     });
     fetchComments();
     fetchWorkLogs();
+    storage.isCounting().then((value) {
+      setState(() {
+        isCounting = value;
+      });
+    });
   }
 
   void initLiveStream() {
     liveStream.on("counting", (value) {
-      setState(() {
-        this._issueWorkLogs = null;
-      });
-      this.fetchWorkLogs();
+      if (!mounted) return;
+      if(value == false) {
+        setState(() {
+          this._issueWorkLogs = null;
+        });
+        this.fetchWorkLogs();
+      }
     });
   }
 
@@ -210,13 +219,14 @@ class _IssueState extends State<Issue> with SingleTickerProviderStateMixin {
       this.issueKey,
       payload['summary'],
     );
-    if (storage.isCounting()) {
+    if (isCounting) {
       logTime = storage.getCurrentLog();
     } else {
       await storage.setCounting(true);
       await storage.setLogTime(logTime);
     }
     await storage.setCounting(true);
+    liveStream.emit("counting",  true);
     Navigator.of(context).push(
       MaterialPageRoute(
         builder: (context) =>

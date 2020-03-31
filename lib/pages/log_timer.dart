@@ -96,6 +96,12 @@ class _LogTimerState extends State<LogTimer> with TickerProviderStateMixin {
         vsync: this, duration: Duration(seconds: levelClock));
 
     _controller.forward();
+    /*WidgetsBinding.instance.addPostFrameCallback((_){
+
+      liveStream.emit("counting",  true);
+
+    });*/
+
     super.initState();
   }
 

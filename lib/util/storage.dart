@@ -9,24 +9,34 @@ class Storage {
     storage = new LocalStorage('LogTime');
   }
 
-  bool isCounting() {
-    return storage.getItem("counting") ?? false;
+  Future<bool> isCounting() async {
+    Map<String, dynamic> m = storage.getItem("counting");
+    await storage.ready;
+    if(m == null) return false;
+    else return m['counting'];
   }
 
-  String getUser(){
+  Future<void> setCounting(bool counting) async {
+    await storage.ready;
+    Map<String, dynamic> m = new Map();
+    m['counting'] = counting;
+    await storage.setItem("counting", m);
+  }
+
+  Future<String> getUser() async {
+    await storage.ready;
     Map<String, dynamic> m = storage.getItem("user");
     return m['user'];
   }
 
   Future<void> setUser(String user) async {
+    await storage.ready;
     Map<String, dynamic> m = new Map();
     m['user'] = user;
     await storage.setItem("user", m);
   }
 
-  Future<void> setCounting(bool counting) async {
-    await storage.setItem("counting", counting);
-  }
+
 
   LogTime getCurrentLog(){
     return LogTime.fromMap(storage.getItem("log"));
